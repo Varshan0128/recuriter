@@ -1,11 +1,9 @@
 import { motion } from "motion/react";
-import { ChevronDown, LogOut, Sparkles } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import UserAvatar from "./UserAvatar";
 import { NAV_ITEMS } from "./portal/nav";
 import type { RecruiterPortalPage } from "./portal/data";
 import type { AuthUser } from "../auth/AuthContext";
-
-const EXPANDABLE: RecruiterPortalPage[] = ["jobs", "applications", "interviews", "shortlisted", "company"];
 
 interface SidebarProps {
   currentPage: RecruiterPortalPage;
@@ -22,7 +20,6 @@ export default function Sidebar({ currentPage, onNavigate, onLogout, user }: Sid
         {NAV_ITEMS.filter((item) => item.id !== "settings").map((item) => {
           const active = currentPage === item.id;
           const Icon = item.icon;
-          const expandable = EXPANDABLE.includes(item.id);
           return (
             <button
               key={item.id}

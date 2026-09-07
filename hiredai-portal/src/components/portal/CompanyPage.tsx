@@ -3,19 +3,42 @@ import { motion } from "motion/react";
 import { Upload, X } from "lucide-react";
 import { GlassPanel } from "./shared";
 
-const COMPANY_FIELDS = ["Company name", "Industry", "Website", "Company size", "Headquarters"];
-const RECRUITER_FIELDS = ["Recruiter name", "Work email", "Phone", "Verification status"];
+const COMPANY_FIELDS = ["Company name", "Industry", "Website", "Company size", "Headquarters"] as const;
+const RECRUITER_FIELDS = ["Recruiter name", "Work email", "Phone", "Verification status"] as const;
 
-function LogoUpload({ logo, onChange }) {
-  const fileInputRef = useRef(null);
+interface CompanyInfo {
+  logo: string | null;
+  "Company name": string;
+  Industry: string;
+  Website: string;
+  "Company size": string;
+  Headquarters: string;
+  about: string;
+}
 
-  const handleFile = (file) => {
+interface RecruiterInfo {
+  "Recruiter name": string;
+  "Work email": string;
+  Phone: string;
+  "Verification status": string;
+  social: string;
+}
+
+interface LogoUploadProps {
+  logo: string | null;
+  onChange: (url: string | null) => void;
+}
+
+function LogoUpload({ logo, onChange }: LogoUploadProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (file: File | undefined) => {
     if (!file || !file.type.startsWith("image/")) return;
     const url = URL.createObjectURL(file);
     onChange(url);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     handleFile(e.dataTransfer.files?.[0]);
   };
@@ -80,7 +103,7 @@ function LogoUpload({ logo, onChange }) {
 }
 
 export default function CompanyPage() {
-  const [company, setCompany] = useState({
+  const [company, setCompany] = useState<CompanyInfo>({
     logo: null,
     "Company name": "",
     Industry: "",
@@ -90,7 +113,7 @@ export default function CompanyPage() {
     about: "We build products that help candidates and recruiters move faster with AI.",
   });
 
-  const [recruiter, setRecruiter] = useState({
+  const [recruiter, setRecruiter] = useState<RecruiterInfo>({
     "Recruiter name": "",
     "Work email": "",
     Phone: "",
@@ -98,8 +121,11 @@ export default function CompanyPage() {
     social: "",
   });
 
-  const updateCompany = (key, value) => setCompany((prev) => ({ ...prev, [key]: value }));
-  const updateRecruiter = (key, value) => setRecruiter((prev) => ({ ...prev, [key]: value }));
+  const updateCompany = (key: keyof CompanyInfo, value: string) =>
+    setCompany((prev) => ({ ...prev, [key]: value }));
+
+  const updateRecruiter = (key: keyof RecruiterInfo, value: string) =>
+    setRecruiter((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = () => {
     console.log("Saving:", { company, recruiter });
@@ -111,7 +137,7 @@ export default function CompanyPage() {
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}>
         <GlassPanel title="Company profile" subtitle="Brand, role, and company metadata in one clean panel.">
           <div className="grid gap-4">
-            <LogoUpload logo={company.logo} onChange={(url) => updateCompany("logo", url)} />
+            <LogoUpload logo={company.logo} onChange={(url) => updateCompany("logo", url ?? "")} />
 
             {COMPANY_FIELDS.map((label, i) => (
               <motion.label
