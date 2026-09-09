@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { Client } from 'pg'
@@ -42,4 +43,3 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
-
