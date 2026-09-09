@@ -1,5 +1,25 @@
 # React + TypeScript + Vite
 
+## Local Development
+
+Run the frontend and backend in separate terminals:
+
+**Terminal 1: frontend**
+
+```bash
+npm run dev
+```
+
+The Vite frontend runs at `http://localhost:5173` with HMR enabled. Requests to `/api/*` are proxied to the backend at `http://localhost:3001`.
+
+**Terminal 2: backend**
+
+```bash
+npm run dev:api
+```
+
+The standalone API server runs at `http://localhost:3001` and uses the existing handlers under `api/`.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
