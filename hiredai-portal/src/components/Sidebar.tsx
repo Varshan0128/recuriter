@@ -20,8 +20,8 @@ export default function Sidebar({ currentPage, brandPath, onNavigate, onLogout, 
       <button
         type="button"
         onClick={() => onNavigate(brandPath)}
-        aria-label="Go to dashboard"
-        className="flex items-center gap-3 border-b border-slate-100 px-5 py-5 text-left transition hover:bg-violet-50/50"
+        aria-label="Go to HiredAI homepage"
+        className="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-5 py-5 text-left transition hover:bg-violet-50/50"
       >
         <BrandLogo size={34} />
         <span>

@@ -55,7 +55,7 @@ export default function TopNavBar({ currentPage, brandPath, onNavigate, onLogout
           onClick={() => onNavigate(brandPath)}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.96 }}
-          className="flex shrink-0 items-center gap-3 rounded-2xl px-1 py-1 transition"
+          className="flex shrink-0 cursor-pointer items-center gap-3 rounded-2xl px-1 py-1 transition"
         >
           <motion.div
             whileHover={{ rotate: 8 }}
