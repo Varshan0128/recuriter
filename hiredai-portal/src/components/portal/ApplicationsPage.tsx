@@ -2,16 +2,18 @@ import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Search } from "lucide-react";
 import { GlassPanel } from "./shared";
-import { APPLICATIONS, applicationTone } from "./data";
+import { applicationTone } from "./data";
+import { useApplications } from "../../lib/queries";
 
 export default function ApplicationsPage() {
-  const [selectedId, setSelectedId] = useState(APPLICATIONS[0]?.id ?? "");
+  const { data: applications = [], isLoading, error } = useApplications();
+  const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
   const filtered = useMemo(
-    () => APPLICATIONS.filter((app) => `${app.candidate} ${app.role} ${app.location}`.toLowerCase().includes(query.toLowerCase())),
-    [query],
+    () => applications.filter((app) => `${app.candidate_name} ${app.job_title} ${app.candidate_email}`.toLowerCase().includes(query.toLowerCase())),
+    [applications, query],
   );
-  const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? APPLICATIONS[0];
+  const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0];
 
   return (
     <div className="grid gap-5 xl:grid-cols-[1.35fr_0.85fr]">
@@ -31,6 +33,9 @@ export default function ApplicationsPage() {
             </div>
           }
         >
+          {isLoading ? <p className="p-6 text-sm text-slate-500">Loading applications...</p> : null}
+          {error ? <p className="p-6 text-sm text-red-600">{error.message}</p> : null}
+          {!isLoading && !error ? (
           <div className="overflow-hidden rounded-[26px] border border-slate-100 bg-white/80">
             <table className="w-full text-left">
               <thead className="bg-slate-50/90 text-xs uppercase tracking-[0.18em] text-slate-500">
@@ -43,7 +48,7 @@ export default function ApplicationsPage() {
                   <th className="px-4 py-3">Status</th>
                 </tr>
               </thead>
-              <tbody>
+                  <tbody>
                 <AnimatePresence mode="popLayout">
                   {filtered.map((app, i) => (
                     <motion.tr
@@ -57,15 +62,15 @@ export default function ApplicationsPage() {
                       className={`cursor-pointer border-t border-slate-100 transition hover:bg-violet-50/40 ${selected?.id === app.id ? "bg-violet-50/70" : ""}`}
                     >
                       <td className="px-4 py-4">
-                        <div className="font-semibold text-slate-950">{app.candidate}</div>
-                        <div className="text-xs text-slate-500">{app.role} - {app.location}</div>
+                        <div className="font-semibold text-slate-950">{app.candidate_name}</div>
+                        <div className="text-xs text-slate-500">{app.job_title} - {app.candidate_email}</div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">{app.score}%</span>
+                        <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">-</span>
                       </td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{app.experience}</td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{app.skillsMatch}</td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{app.appliedDate}</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">-</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">-</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">{new Date(app.applied_at).toLocaleDateString()}</td>
                       <td className="px-4 py-4">
                         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationTone(app.status)}`}>{app.status}</span>
                       </td>
@@ -75,6 +80,7 @@ export default function ApplicationsPage() {
               </tbody>
             </table>
           </div>
+          ) : null}
         </GlassPanel>
       </motion.div>
 
@@ -83,7 +89,7 @@ export default function ApplicationsPage() {
           <GlassPanel title="Candidate detail" subtitle="A focused review panel with ATS context and notes.">
             <AnimatePresence mode="wait">
               <motion.div
-                key={selected.id}
+                key={selected?.id ?? "empty"}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
@@ -98,18 +104,17 @@ export default function ApplicationsPage() {
                     transition={{ duration: 0.4, delay: 0.1, type: "spring", stiffness: 200 }}
                     className="mt-2 text-4xl font-extrabold"
                   >
-                    {selected.score}
+                    {selected ? "Live" : "-"}
                   </motion.div>
-                  <div className="mt-1 text-sm text-violet-100">Strong fit for {selected.role}</div>
+                  <div className="mt-1 text-sm text-violet-100">{selected ? selected.job_title : "No applications yet"}</div>
                 </div>
                 <div className="rounded-[26px] border border-slate-100 bg-white/80 p-5">
-                  <div className="text-lg font-bold text-slate-950">{selected.candidate}</div>
-                  <div className="text-sm text-slate-500">{selected.role}</div>
+                  <div className="text-lg font-bold text-slate-950">{selected?.candidate_name ?? "No application selected"}</div>
+                  <div className="text-sm text-slate-500">{selected?.job_title ?? ""}</div>
                   <div className="mt-4 grid gap-3 text-sm">
-                    <div><span className="font-semibold text-slate-800">Experience:</span> {selected.experience}</div>
-                    <div><span className="font-semibold text-slate-800">Education:</span> {selected.education}</div>
-                    <div><span className="font-semibold text-slate-800">Skills match:</span> {selected.skillsMatch}</div>
-                    <div><span className="font-semibold text-slate-800">Location:</span> {selected.location}</div>
+                    <div><span className="font-semibold text-slate-800">Email:</span> {selected?.candidate_email ?? "-"}</div>
+                    <div><span className="font-semibold text-slate-800">Status:</span> {selected?.status ?? "-"}</div>
+                    <div><span className="font-semibold text-slate-800">Applied:</span> {selected ? new Date(selected.applied_at).toLocaleDateString() : "-"}</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

@@ -45,6 +45,7 @@ async function main() {
     const userResult = await client.query<{ id: string; email: string }>(
       `insert into users (name, email, password_hash, role, company_id)
        values
+         ('Varshan', 'varshan@example.com', $1, 'recruiter', $2),
          ('Aarav Mehta', 'aarav@example.com', $1, 'recruiter', $2),
          ('Sara Iyer', 'sara@example.com', $3, 'interviewer', $4)
        returning id, email`,
@@ -72,7 +73,7 @@ async function main() {
          ($1, 'Senior Product Designer', 'Own end-to-end product design for high-volume hiring workflows.', 'full-time', 'hybrid', 4, 8, 22000, 32000, 'USD', 'published', $3),
          ($2, 'Data Analyst Intern', 'Support funnel reporting, dashboards, and candidate insights.', 'internship', 'remote', 0, 1, 1200, 1800, 'USD', 'draft', $3)
        returning id, title`,
-      [companyByName.get('Nova Retail'), companyByName.get('Vertex Health'), userByEmail.get('aarav@example.com')],
+      [companyByName.get('Nova Retail'), companyByName.get('Vertex Health'), userByEmail.get('varshan@example.com')],
     )
 
     const jobByTitle = new Map(jobResult.rows.map((row) => [row.title as string, row.id as string]))
@@ -114,7 +115,7 @@ async function main() {
       `insert into notes (application_id, author_id, content)
        values
          ($1, $2, 'Strong visual thinking and a clean case-study presentation.')`,
-      [applicationByCandidate.get(candidateByEmail.get('kabir@example.com') ?? ''), userByEmail.get('aarav@example.com')],
+      [applicationByCandidate.get(candidateByEmail.get('kabir@example.com') ?? ''), userByEmail.get('varshan@example.com')],
     )
 
     await client.query('commit')

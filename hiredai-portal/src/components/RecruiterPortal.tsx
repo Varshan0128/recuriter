@@ -7,7 +7,6 @@ import TopNavBar from "./TopNavBar";
 import Sidebar from "./Sidebar";
 import { MobileDrawer } from "./portal/shared";
 import type { RecruiterPortalPage } from "./portal/data";
-import HomePage from "./portal/HomePage";
 import DashboardPage from "./portal/DashboardPage";
 import JobsPage from "./portal/JobsPage";
 import ApplicationsPage from "./portal/ApplicationsPage";
@@ -27,7 +26,7 @@ interface RecruiterPortalProps {
 function DashboardContent({ page }: { page: RecruiterPortalPage }) {
   switch (page) {
     case "home":
-      return <HomePage />;
+      return <DashboardPage />;
     case "dashboard":
       return <DashboardPage />;
     case "jobs":
@@ -61,9 +60,7 @@ export default function RecruiterPortal({ page }: RecruiterPortalProps) {
     navigate("/login");
   };
 
-  // The marketing "home" page and the full-width Analytics dashboard
-  // skip the sidebar; every other app page pairs the top nav with it.
-  const showSidebar = page !== "home";
+  const showSidebar = true;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f8f7ff_36%,#ffffff_100%)] overflow-x-hidden">

@@ -5,6 +5,7 @@ import { badRequest, json, methodNotAllowed, readJsonBody } from './http.js'
 type CrudConfig = {
   table: string
   orderBy?: string
+  listFilterField?: string
   createFields: readonly string[]
   updateFields: readonly string[]
   requiredCreateFields: readonly string[]
@@ -58,7 +59,12 @@ export function createCrudHandler(config: CrudConfig) {
           return
         }
 
-        const result = await query(`select * from ${config.table} order by ${orderBy} desc`)
+        const filterValue = config.listFilterField ? url.searchParams.get(config.listFilterField) : null
+        const whereClause = config.listFilterField && filterValue ? ` where ${config.listFilterField} = $1` : ''
+        const result = await query(
+          `select * from ${config.table}${whereClause} order by ${orderBy} desc`,
+          filterValue ? [filterValue] : [],
+        )
         json(res, 200, result.rows)
         return
       }

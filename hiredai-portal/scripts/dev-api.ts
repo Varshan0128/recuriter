@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import applicationsHandler from '../api/applications.js'
 import candidatesHandler from '../api/candidates.js'
 import companiesHandler from '../api/companies.js'
+import dashboardHandler from '../api/dashboard.js'
 import healthHandler from '../api/health.js'
 import interviewsHandler from '../api/interviews.js'
 import jobsHandler from '../api/jobs.js'
@@ -10,6 +11,7 @@ import notesHandler from '../api/notes.js'
 import loginHandler from '../api/auth/login.js'
 import meHandler from '../api/auth/me.js'
 import registerHandler from '../api/auth/register.js'
+import settingsHandler from '../api/settings.js'
 
 const port = Number(process.env.API_PORT) || 3001
 
@@ -22,10 +24,12 @@ const routes: Record<string, ApiHandler> = {
   '/api/auth/register': registerHandler,
   '/api/candidates': candidatesHandler,
   '/api/companies': companiesHandler,
+  '/api/dashboard': dashboardHandler,
   '/api/health': healthHandler,
   '/api/interviews': interviewsHandler,
   '/api/jobs': jobsHandler,
   '/api/notes': notesHandler,
+  '/api/settings': settingsHandler,
 }
 
 function sendJson(res: ServerResponse, statusCode: number, body: unknown) {

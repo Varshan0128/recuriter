@@ -29,9 +29,18 @@ create table if not exists companies (
   name text not null unique,
   logo_url text,
   description text,
+  industry text,
+  website text,
+  company_size text,
+  headquarters text,
   verified boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table companies add column if not exists industry text;
+alter table companies add column if not exists website text;
+alter table companies add column if not exists company_size text;
+alter table companies add column if not exists headquarters text;
 
 create table if not exists users (
   id uuid primary key default gen_random_uuid(),
@@ -40,8 +49,11 @@ create table if not exists users (
   password_hash text not null,
   role text not null default 'recruiter',
   company_id uuid references companies(id) on delete set null,
+  preferences jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table users add column if not exists preferences jsonb not null default '{}'::jsonb;
 
 create table if not exists jobs (
   id uuid primary key default gen_random_uuid(),

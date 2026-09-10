@@ -300,19 +300,25 @@ export function statusTone(status: string) {
   }
 }
 
-export function applicationTone(status: ApplicationStatus) {
+export function applicationTone(status: string) {
   switch (status) {
     case "Applied":
+    case "applied":
       return "bg-slate-100 text-slate-700";
     case "Reviewed":
+    case "reviewed":
       return "bg-cyan-50 text-cyan-700";
     case "Shortlisted":
+    case "shortlisted":
       return "bg-violet-50 text-violet-700";
     case "Interview":
+    case "interview":
       return "bg-amber-50 text-amber-700";
     case "Rejected":
+    case "rejected":
       return "bg-red-50 text-red-700";
     case "Hired":
+    case "hired":
       return "bg-emerald-50 text-emerald-700";
   }
 }

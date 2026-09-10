@@ -1,10 +1,17 @@
 import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
+import { apiRequest } from "../../lib/api";
 import { CircleCheckBig } from "lucide-react";
 import { GlassPanel } from "./shared";
 
 const FIELDS = ["Job title", "Department", "Employment type", "Work mode", "Location", "Experience", "Salary range", "Number of openings"];
 
 export default function JobFormPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const steps = ["Basics", "Compensation", "Requirements", "Publish"];
   const [step, setStep] = useState(0);
 
@@ -39,13 +46,40 @@ export default function JobFormPage() {
     previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!form["Job title"].trim()) {
       showStatus("error", "Job title is required before publishing.");
       return;
     }
-    showStatus("success", `"${form["Job title"]}" published successfully.`);
-    // TODO: replace with real publish API call
+    if (!user?.company_id) {
+      showStatus("error", "Your account is not linked to a company.");
+      return;
+    }
+    try {
+      await apiRequest("/api/jobs", {
+        method: "POST",
+        body: JSON.stringify({
+          company_id: user.company_id,
+          created_by: user.id,
+          title: form["Job title"],
+          description: form.description || "Role description pending.",
+          employment_type: form["Employment type"],
+          work_mode: form["Work mode"],
+          experience_min: form.Experience ? Number(form.Experience.split("-")[0]) : null,
+          experience_max: form.Experience ? Number(form.Experience.split("-")[1]) : null,
+          status: "published",
+          salary_currency: "USD",
+        }),
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["jobs", user.company_id] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard", user.company_id] }),
+      ]);
+      showStatus("success", `"${form["Job title"]}" published successfully.`);
+      navigate("/hr/jobs");
+    } catch (error) {
+      showStatus("error", error instanceof Error ? error.message : "Unable to publish job.");
+    }
   };
 
   return (
@@ -64,12 +98,33 @@ export default function JobFormPage() {
           {FIELDS.map((label) => (
             <label key={label} className="block">
               <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
-              <input
-                value={form[label]}
-                onChange={(e) => updateField(label, e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-violet-400 focus:bg-white"
-                placeholder={label}
-              />
+              {label === "Employment type" ? (
+                <select value={form[label]} onChange={(e) => updateField(label, e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white">
+                  <option value="">Select employment type</option>
+                  <option value="full-time">Full time</option>
+                  <option value="part-time">Part time</option>
+                  <option value="contract">Contract</option>
+                  <option value="internship">Internship</option>
+                </select>
+              ) : label === "Work mode" ? (
+                <select value={form[label]} onChange={(e) => updateField(label, e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white">
+                  <option value="">Select work mode</option>
+                  <option value="remote">Remote</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="onsite">Onsite</option>
+                </select>
+              ) : label === "Experience" ? (
+                <select value={form[label]} onChange={(e) => updateField(label, e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white">
+                  <option value="">Select experience</option>
+                  <option value="0-1">0-1 years</option>
+                  <option value="1-3">1-3 years</option>
+                  <option value="3-5">3-5 years</option>
+                  <option value="5-8">5-8 years</option>
+                  <option value="8-12">8-12 years</option>
+                </select>
+              ) : (
+                <input value={form[label]} onChange={(e) => updateField(label, e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-violet-400 focus:bg-white" placeholder={label} />
+              )}
             </label>
           ))}
           <label className="block md:col-span-2">

@@ -51,7 +51,7 @@ export default function TopNavBar({ currentPage, onNavigate, onLogout, onOpenMob
         {/* Brand */}
         <motion.button
           type="button"
-          onClick={() => onNavigate("/hr/home")}
+          onClick={() => onNavigate("/hr/dashboard")}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.96 }}
           className="flex shrink-0 items-center gap-3 rounded-2xl px-1 py-1 transition"
