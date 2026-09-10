@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   Briefcase,
   Building2,
   CalendarDays,
@@ -24,9 +25,11 @@ export const NAV_ITEMS: SidebarItem[] = [
   { id: "post-job", label: "Post Job", icon: FileText, path: "/hr/post-job" },
   { id: "applications", label: "Candidates", icon: Users, path: "/hr/applications" },
   { id: "interviews", label: "Interviews", icon: CalendarDays, path: "/hr/interviews" },
-  { id: "shortlisted", label: "Analytics", icon: Star, path: "/hr/shortlisted" },
+  { id: "shortlisted", label: "Shortlisted", icon: Star, path: "/hr/shortlisted" },
+  { id: "analytics", label: "Analytics", icon: BarChart3, path: "/hr/analytics" },
   { id: "company", label: "Company", icon: Building2, path: "/hr/company" },
   { id: "settings", label: "Settings", icon: Settings, path: "/hr/settings" },
+
 ];
 
 // Kept as a separate export in case any quick-link/mobile-only spot wants to reference it directly.

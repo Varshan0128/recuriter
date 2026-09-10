@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { Bell, ChevronDown, LogOut, Menu, Settings } from "lucide-react";
 import BrandLogo from "./BrandLogo";
 import UserAvatar from "./UserAvatar";
 import type { RecruiterPortalPage } from "./RecruiterPortal";
-import { NOTIFICATIONS } from "./RecruiterPortal";
 import type { AuthUser } from "../auth/AuthContext";
+import { apiRequest } from "../lib/api";
+import { useNotifications } from "../lib/queries";
 
 interface NavLink {
   id: RecruiterPortalPage;
@@ -19,7 +21,8 @@ const NAV_LINKS: NavLink[] = [
   { id: "post-job", label: "Post Job", path: "/hr/post-job" },
   { id: "applications", label: "Candidates", path: "/hr/applications" },
   { id: "interviews", label: "Interviews", path: "/hr/interviews" },
-  { id: "shortlisted", label: "Analytics", path: "/hr/shortlisted" },
+  { id: "shortlisted", label: "Shortlisted", path: "/hr/shortlisted" },
+  { id: "analytics", label: "Analytics", path: "/hr/analytics" },
   { id: "company", label: "Company", path: "/hr/company" },
 ];
 
@@ -35,6 +38,16 @@ interface TopNavBarProps {
 export default function TopNavBar({ currentPage, brandPath, onNavigate, onLogout, onOpenMobileMenu, user }: TopNavBarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: notifications = [] } = useNotifications();
+  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
+
+  const markNotificationRead = async (id: string, targetPath: string | null) => {
+    if (user?.id) await apiRequest(`/api/notifications?user_id=${user.id}&id=${id}`, { method: "PATCH", body: JSON.stringify({ id }) });
+    await queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+    setNotifOpen(false);
+    if (targetPath) onNavigate(targetPath);
+  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-2xl">
@@ -119,7 +132,7 @@ export default function TopNavBar({ currentPage, brandPath, onNavigate, onLogout
               aria-label="Notifications"
             >
               <Bell size={17} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-violet-600 ring-2 ring-white" />
+              {unreadCount > 0 ? <span className="absolute right-1 top-1 min-w-4 rounded-full bg-violet-600 px-1 text-[10px] font-bold text-white ring-2 ring-white">{unreadCount}</span> : null}
             </motion.button>
 
             <AnimatePresence>
@@ -133,23 +146,23 @@ export default function TopNavBar({ currentPage, brandPath, onNavigate, onLogout
                     transition={{ duration: 0.18, ease: "easeOut" }}
                     className="absolute right-0 top-[calc(100%+10px)] z-50 w-80 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.14)]"
                   >
-                    <div className="border-b border-slate-100 px-4 py-3 text-sm font-bold text-slate-950">
-                      Notifications
-                    </div>
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 text-sm font-bold text-slate-950"><span>Notifications</span><button type="button" onClick={async () => { if (user?.id) await apiRequest(`/api/notifications?user_id=${user.id}`, { method: "PATCH", body: JSON.stringify({ mark_all_read: true }) }); await queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] }); }} className="text-xs font-semibold text-violet-700">Mark all read</button></div>
                     <div className="max-h-80 overflow-y-auto">
-                      {NOTIFICATIONS.map((n, i) => (
+                      {notifications.length === 0 ? <p className="px-4 py-6 text-sm text-slate-500">No notifications yet.</p> : null}
+                      {notifications.map((n, i) => (
                         <motion.div
-                          key={n.title}
+                          key={n.id}
                           initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.25, delay: i * 0.05, ease: "easeOut" }}
-                          className={`flex items-start gap-3 border-b border-slate-50 px-4 py-3 last:border-0 hover:bg-slate-50 ${n.unread ? "bg-violet-50/40" : ""}`}
+                          onClick={() => void markNotificationRead(n.id, n.target_path)}
+                          className={`flex cursor-pointer items-start gap-3 border-b border-slate-50 px-4 py-3 last:border-0 hover:bg-slate-50 ${!n.read_at ? "bg-violet-50/40" : ""}`}
                         >
-                          <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.unread ? "bg-violet-600" : "bg-slate-300"}`} />
+                          <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!n.read_at ? "bg-violet-600" : "bg-slate-300"}`} />
                           <div>
                             <div className="text-sm font-semibold text-slate-950">{n.title}</div>
-                            <div className="mt-0.5 text-xs leading-5 text-slate-500">{n.text}</div>
-                            <div className="mt-1 text-[11px] font-medium text-slate-400">{n.time}</div>
+                            <div className="mt-0.5 text-xs leading-5 text-slate-500">{n.message}</div>
+                            <div className="mt-1 text-[11px] font-medium text-slate-400">{new Date(n.created_at).toLocaleString()}</div>
                           </div>
                         </motion.div>
                       ))}

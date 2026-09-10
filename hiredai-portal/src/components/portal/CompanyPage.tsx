@@ -128,6 +128,7 @@ export default function CompanyPage() {
     social: "",
   });
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!companyData) return;
@@ -151,6 +152,7 @@ export default function CompanyPage() {
 
   const handleSave = async () => {
     if (!user?.company_id) return;
+    setIsSaving(true);
     try {
       await apiRequest(`/api/companies?id=${user.company_id}`, {
         method: "PATCH",
@@ -168,6 +170,22 @@ export default function CompanyPage() {
       setStatus({ type: "success", text: "Company profile saved successfully." });
     } catch (error) {
       setStatus({ type: "error", text: error instanceof Error ? error.message : "Unable to save company profile." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleVerificationRequest = async () => {
+    if (!user?.company_id) return;
+    setIsSaving(true);
+    try {
+      await apiRequest(`/api/companies?id=${user.company_id}`, { method: "PATCH", body: JSON.stringify({ verification_requested: true }) });
+      await queryClient.invalidateQueries({ queryKey: ["company", user.company_id] });
+      setStatus({ type: "success", text: "Verification request saved for company review." });
+    } catch (error) {
+      setStatus({ type: "error", text: error instanceof Error ? error.message : "Unable to request verification." });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -252,13 +270,15 @@ export default function CompanyPage() {
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
+                type="button"
                 onClick={handleSave}
+                disabled={isSaving}
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
               >
-                Save changes
+                {isSaving ? "Saving..." : "Save changes"}
               </motion.button>
-              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white">
-                Request verification
+              <motion.button type="button" disabled={isSaving} onClick={() => void handleVerificationRequest()} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
+                {isSaving ? "Saving..." : "Request verification"}
               </motion.button>
             </div>
             {status ? <div className={`md:col-span-2 rounded-2xl border px-4 py-3 text-sm font-semibold ${status.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`}>{status.text}</div> : null}

@@ -4,10 +4,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { apiRequest } from "../../lib/api";
 import { useJob } from "../../lib/queries";
-import { CircleCheckBig } from "lucide-react";
+import { CircleCheckBig, Plus, Trash2 } from "lucide-react";
 import { GlassPanel } from "./shared";
 
 const FIELDS = ["Job title", "Department", "Employment type", "Work mode", "Location", "Experience", "Salary range", "Number of openings"];
+const DEFAULT_QUESTIONS = ["", "", "", "", ""];
 
 export default function JobFormPage() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function JobFormPage() {
   const isEditMode = Boolean(editJobId);
   const steps = ["Basics", "Compensation", "Requirements", "Publish"];
   const [step, setStep] = useState(0);
+  const [screeningQuestions, setScreeningQuestions] = useState<string[]>(DEFAULT_QUESTIONS);
 
   const [form, setForm] = useState<Record<string, string>>({
     "Job title": "",
@@ -33,6 +35,23 @@ export default function JobFormPage() {
   });
 
   const updateField = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  const updateQuestion = (index: number, value: string) => {
+    setScreeningQuestions((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const moveQuestion = (index: number, direction: -1 | 1) => {
+    setScreeningQuestions((prev) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  };
 
   const previewRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -51,6 +70,21 @@ export default function JobFormPage() {
       "Number of openings": "",
       description: editJob.description,
     });
+
+    const normalizeQuestion = (value: unknown): string => {
+      if (typeof value === "string") return value;
+      if (typeof value === "object" && value !== null && "question" in value && typeof (value as { question?: unknown }).question === "string") {
+        return (value as { question: string }).question;
+      }
+      return "";
+    };
+
+    if (Array.isArray(editJob.screening_questions)) {
+      const nextQuestions = editJob.screening_questions.map(normalizeQuestion);
+      setScreeningQuestions([...nextQuestions.slice(0, 5), ...Array.from({ length: 5 - nextQuestions.length }, () => "")]);
+    } else {
+      setScreeningQuestions(DEFAULT_QUESTIONS);
+    }
   }, [editJob]);
 
   const showStatus = (type: "success" | "error", text: string) => {
@@ -81,6 +115,7 @@ export default function JobFormPage() {
       const salaryParts = form["Salary range"].split("-").map((value) => Number(value.trim()));
       const salary_min = salaryParts.length === 2 && salaryParts.every(Number.isFinite) ? salaryParts[0] : null;
       const salary_max = salaryParts.length === 2 && salaryParts.every(Number.isFinite) ? salaryParts[1] : null;
+      const validQuestions = screeningQuestions.map((question) => question.trim()).filter(Boolean).slice(0, 5).map((question) => ({ question }));
       const payload = {
         company_id: user.company_id,
         created_by: user.id,
@@ -94,6 +129,7 @@ export default function JobFormPage() {
         salary_max,
         status: isEditMode ? editJob?.status : "published",
         salary_currency: "USD",
+        screening_questions: validQuestions,
       };
       await apiRequest("/api/jobs", {
         method: isEditMode ? "PATCH" : "POST",
@@ -170,6 +206,46 @@ export default function JobFormPage() {
             />
           </label>
         </div>
+
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-800">Screening questions</div>
+              <div className="text-xs text-slate-500">Up to 5 short questions for applicants</div>
+            </div>
+            <button type="button" onClick={() => setScreeningQuestions((prev) => (prev.length >= 5 ? prev : [...prev, ""]))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700">
+              <Plus size={14} /> Add question
+            </button>
+          </div>
+          <div className="mt-4 space-y-3">
+            {screeningQuestions.map((question, index) => (
+              <div key={`screening-question-${index}`} className="flex items-center gap-2">
+                <input
+                  value={question}
+                  onChange={(event) => updateQuestion(index, event.target.value)}
+                  placeholder={`Question ${index + 1}`}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-violet-400"
+                />
+                {screeningQuestions.length > 1 ? (
+                  <div className="flex gap-1">
+                    <button type="button" onClick={() => moveQuestion(index, -1)} disabled={index === 0} className="rounded-xl border border-slate-200 p-2 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40" aria-label={`Move question ${index + 1} up`}>
+                      ↑
+                    </button>
+                    <button type="button" onClick={() => moveQuestion(index, 1)} disabled={index === screeningQuestions.length - 1} className="rounded-xl border border-slate-200 p-2 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40" aria-label={`Move question ${index + 1} down`}>
+                      ↓
+                    </button>
+                  </div>
+                ) : null}
+                {screeningQuestions.length > 1 ? (
+                  <button type="button" onClick={() => setScreeningQuestions((prev) => prev.filter((_, itemIndex) => itemIndex !== index))} className="rounded-xl border border-red-200 p-2 text-red-500" aria-label={`Remove question ${index + 1}`}>
+                    <Trash2 size={15} />
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+
         {status ? (
           <div
             className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
@@ -204,6 +280,18 @@ export default function JobFormPage() {
             <p className="mt-4 text-sm leading-6 text-slate-600">
               {form.description || "Design intuitive product flows, own design systems, and work closely with product and engineering on high-impact shipping cycles."}
             </p>
+            {screeningQuestions.some((question) => question.trim()) ? (
+              <div className="mt-5">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Screening questions</div>
+                <div className="space-y-2">
+                  {screeningQuestions.filter((question) => question.trim()).map((question, index) => (
+                    <div key={`preview-question-${index}`} className="rounded-xl border border-slate-200 bg-white p-2.5 text-sm text-slate-700">
+                      {question}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </GlassPanel>
 

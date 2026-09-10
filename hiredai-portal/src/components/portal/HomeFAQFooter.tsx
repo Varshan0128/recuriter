@@ -1,8 +1,26 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown } from "lucide-react";
-import { RECRUITER_FAQS } from "./data";
 import BrandLogo from "../BrandLogo";
+
+const RECRUITER_FAQS = [
+  {
+    q: "What is the HiredAI Recruiter Portal?",
+    a: "HiredAI Recruiter Portal helps HR teams manage the full hiring lifecycle from job creation to candidate review and interview coordination.",
+  },
+  {
+    q: "How does candidate matching work?",
+    a: "The portal compares each applicant against the role requirements and stores structured review data so recruiters can prioritize candidate quality without relying on static sample metrics.",
+  },
+  {
+    q: "Can I manage jobs and interview workflows?",
+    a: "Yes. Recruiters can create or edit jobs, add screening questions, review applications, update stages, and keep notes and activity history for each candidate.",
+  },
+  {
+    q: "Is AI scoring connected in this build?",
+    a: "No external AI service is connected here. The portal keeps evaluation states honest and shows pending or manual review until a real scoring provider is linked.",
+  },
+];
 
 function LinkedInGlyph({ size = 16 }: { size?: number }) {
   return (
@@ -101,7 +119,7 @@ function HomeFooterSection({ navigate }: { navigate: (path: string) => void }) {
       links: [
         { label: "Post a Job", path: "/hr/post-job" },
         { label: "Candidate Search", path: "/hr/applications" },
-        { label: "Hiring Analytics", path: "/hr/shortlisted" },
+        { label: "Hiring Analytics", path: "/hr/analytics" },
         { label: "Interview Scheduling", path: "/hr/interviews" },
       ],
     },

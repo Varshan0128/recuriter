@@ -12,6 +12,12 @@ import loginHandler from '../api/auth/login.js'
 import meHandler from '../api/auth/me.js'
 import registerHandler from '../api/auth/register.js'
 import settingsHandler from '../api/settings.js'
+import notificationsHandler from '../api/notifications.js'
+import teamHandler from '../api/team.js'
+import activityHandler from '../api/activity.js'
+import analyticsHandler from '../api/analytics.js'
+import scorecardsHandler from '../api/scorecards.js'
+import evaluationsHandler from '../api/evaluations.js'
 
 const port = Number(process.env.API_PORT) || 3001
 
@@ -30,6 +36,12 @@ const routes: Record<string, ApiHandler> = {
   '/api/jobs': jobsHandler,
   '/api/notes': notesHandler,
   '/api/settings': settingsHandler,
+  '/api/notifications': notificationsHandler,
+  '/api/team': teamHandler,
+  '/api/activity': activityHandler,
+  '/api/analytics': analyticsHandler,
+  '/api/scorecards': scorecardsHandler,
+  '/api/evaluations': evaluationsHandler,
 }
 
 function sendJson(res: ServerResponse, statusCode: number, body: unknown) {

@@ -13,15 +13,39 @@ import {
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { GlassPanel } from "./shared";
-import {
-  DASHBOARD_INTERVIEWS,
-  DASHBOARD_STAT_SPARKS,
-  DASHBOARD_TREND_DATA,
-  HIRING_FUNNEL,
-  applicationTone,
-  currency,
-} from "./data";
-import { useApplications, useDashboardStats } from "../../lib/queries";
+import { useApplications, useDashboardStats, useInterviews } from "../../lib/queries";
+
+const HIRING_FUNNEL = [
+  { label: "Applied", value: 0, icon: FileText, tone: "bg-violet-50 text-violet-600", bar: "#7c3aed" },
+  { label: "Reviewed", value: 0, icon: FileText, tone: "bg-sky-50 text-sky-600", bar: "#0ea5e9" },
+  { label: "Shortlisted", value: 0, icon: CircleCheckBig, tone: "bg-purple-50 text-purple-600", bar: "#a855f7" },
+  { label: "Interview", value: 0, icon: CalendarDays, tone: "bg-amber-50 text-amber-600", bar: "#f59e0b" },
+  { label: "Offer", value: 0, icon: Briefcase, tone: "bg-orange-50 text-orange-600", bar: "#fb923c" },
+  { label: "Hired", value: 0, icon: CircleCheckBig, tone: "bg-emerald-50 text-emerald-600", bar: "#10b981" },
+];
+
+function currency(value: number) {
+  return new Intl.NumberFormat("en-US").format(value);
+}
+
+function applicationTone(status: string) {
+  switch (status) {
+    case "applied":
+      return "bg-slate-100 text-slate-700";
+    case "reviewed":
+      return "bg-cyan-50 text-cyan-700";
+    case "shortlisted":
+      return "bg-violet-50 text-violet-700";
+    case "interview":
+      return "bg-amber-50 text-amber-700";
+    case "rejected":
+      return "bg-red-50 text-red-700";
+    case "hired":
+      return "bg-emerald-50 text-emerald-700";
+    default:
+      return "bg-slate-100 text-slate-700";
+  }
+}
 
 const DASHBOARD_STAT_CONFIG = [
   { label: "Active Jobs", key: "active_jobs", icon: Briefcase, tone: "from-violet-500 to-fuchsia-500", spark: "#7c3aed", delta: "Live count" },
@@ -158,11 +182,18 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { data: stats } = useDashboardStats();
   const { data: applications = [] } = useApplications();
+  const { data: interviews = [] } = useInterviews();
   const liveFunnel = HIRING_FUNNEL.map((stage) => ({
     ...stage,
     value: stage.label === "Offer" ? 0 : applications.filter((application) => application.status === stage.label.toLowerCase()).length,
   }));
   const maxFunnel = Math.max(...liveFunnel.map((stage) => stage.value), 1);
+  const liveTrend = Object.values(applications.reduce<Record<string, { name: string; applications: number }>>((groups, application) => {
+    const name = new Date(application.applied_at).toLocaleDateString();
+    groups[name] = groups[name] ?? { name, applications: 0 };
+    groups[name].applications += 1;
+    return groups;
+  }, {}));
 
   return (
     <div className="space-y-5">
@@ -197,7 +228,7 @@ export default function DashboardPage() {
                   </motion.div>
                   <div className="text-sm font-medium text-slate-500">{stat.label}</div>
                 </div>
-                <Sparkline data={DASHBOARD_STAT_SPARKS[stat.label] ?? []} color={stat.spark} />
+                <Sparkline data={applications.map(() => 1)} color={stat.spark} />
               </div>
               <div className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">{stats?.[stat.key] ?? 0}</div>
               <div className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
@@ -227,7 +258,7 @@ export default function DashboardPage() {
           >
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={DASHBOARD_TREND_DATA} margin={{ top: 10, right: 8, bottom: 0, left: -8 }}>
+                <ComposedChart data={liveTrend} margin={{ top: 10, right: 8, bottom: 0, left: -8 }}>
                   <defs>
                     <linearGradient id="dashboardApps" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.28} />
@@ -236,7 +267,7 @@ export default function DashboardPage() {
                   </defs>
                   <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#ede9fe" />
                   <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
-                  <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} domain={[0, 400]} ticks={[0, 100, 200, 300, 400]} />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
                   <Tooltip />
                   <Area
                     type="monotone"
@@ -316,9 +347,10 @@ export default function DashboardPage() {
             }
           >
             <div className="space-y-3">
-              {DASHBOARD_INTERVIEWS.map((item, i) => (
+              {interviews.length === 0 ? <p className="text-sm text-slate-500">No upcoming interviews.</p> : null}
+              {interviews.slice(0, 3).map((item, i) => (
                 <motion.div
-                  key={item.candidate}
+                  key={item.id}
                   initial={{ opacity: 0, y: 12 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-30px" }}
@@ -329,31 +361,31 @@ export default function DashboardPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,rgba(124,58,237,0.12),rgba(168,85,247,0.10))] text-xs font-bold text-violet-700">
-                        {item.initials}
+                        {item.candidate_name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-slate-950">{item.candidate}</div>
-                        <div className="text-xs text-slate-500">{item.role}</div>
+                        <div className="text-sm font-semibold text-slate-950">{item.candidate_name}</div>
+                        <div className="text-xs text-slate-500">{item.job_title}</div>
                       </div>
                     </div>
                     <div className="text-right text-xs">
-                      <div className="font-semibold text-slate-700">{item.day}</div>
-                      <div className="text-slate-400">{item.time}</div>
+                      <div className="font-semibold text-slate-700">{new Date(item.scheduled_at).toLocaleDateString()}</div>
+                      <div className="text-slate-400">{new Date(item.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
                       <Video size={13} className="text-violet-500" />
-                      {item.type}
+                      {item.interview_type ?? "Interview"}
                     </span>
                     <motion.button
                       type="button"
-                      onClick={() => navigate("/hr/interviews")}
+                      onClick={() => item.meeting_url ? window.open(item.meeting_url, "_blank", "noopener,noreferrer") : navigate("/hr/interviews")}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className="rounded-full border border-violet-200 px-3 py-1 text-xs font-semibold text-violet-700"
                     >
-                      Join
+                      {item.meeting_url ? "Join" : "Details"}
                     </motion.button>
                   </div>
                 </motion.div>
@@ -448,7 +480,7 @@ export default function DashboardPage() {
           </div>
           <div className="mt-4 text-base font-bold">AI Recommendation</div>
           <p className="mt-2 text-sm leading-6 text-violet-100">
-            Backend Engineer role has 12 high-quality candidates ready for shortlisting.
+            AI recommendations will appear here when a real evaluator is connected.
           </p>
           <motion.button
             whileHover={{ scale: 1.03 }}

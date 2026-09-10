@@ -9,6 +9,7 @@ type CrudConfig = {
   createFields: readonly string[]
   updateFields: readonly string[]
   requiredCreateFields: readonly string[]
+  jsonFields?: readonly string[]
 }
 
 function isMissingValue(value: unknown) {
@@ -23,6 +24,16 @@ function pickFields(source: Record<string, unknown>, fields: readonly string[]) 
     }
   }
   return picked
+}
+
+function serializeJsonFields(data: Record<string, unknown>, fields: readonly string[] = []) {
+  for (const field of fields) {
+    const value = data[field]
+    if (value !== undefined && value !== null && typeof value !== 'string') {
+      data[field] = JSON.stringify(value)
+    }
+  }
+  return data
 }
 
 function getId(req: IncomingMessage, body: Record<string, unknown>) {
@@ -71,7 +82,7 @@ export function createCrudHandler(config: CrudConfig) {
 
       if (req.method === 'POST') {
         const body = (await readJsonBody(req)) as Record<string, unknown>
-        const data = pickFields(body, config.createFields)
+        const data = serializeJsonFields(pickFields(body, config.createFields), config.jsonFields)
         const missingFields = config.requiredCreateFields.filter((field) => isMissingValue(data[field]))
         if (missingFields.length > 0) {
           badRequest(res, `Missing required fields: ${missingFields.join(', ')}`)
@@ -102,7 +113,7 @@ export function createCrudHandler(config: CrudConfig) {
           return
         }
 
-        const data = pickFields(body, config.updateFields)
+        const data = serializeJsonFields(pickFields(body, config.updateFields), config.jsonFields)
         const columns = Object.keys(data)
         if (columns.length === 0) {
           badRequest(res, 'No writable fields provided')

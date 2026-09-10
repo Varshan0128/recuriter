@@ -8,5 +8,6 @@ export default createCrudHandler({
   listFilterField: 'company_id',
   createFields: jobCreateFields,
   updateFields: jobUpdateFields,
+  jsonFields: ['screening_questions'],
   requiredCreateFields: ['company_id', 'title', 'description', 'employment_type', 'work_mode'] as const,
 }) as unknown as (req: IncomingMessage, res: ServerResponse) => void

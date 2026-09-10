@@ -15,7 +15,9 @@ import ShortlistedPage from "./portal/ShortlistedPage";
 import JobFormPage from "./portal/JobFormPage";
 import CompanyPage from "./portal/CompanyPage";
 import SettingsPage from "./portal/SettingsPage";
+import TeamPage from "./portal/TeamPage";
 import InterviewsPage from "./portal/InterviewsPage";
+import AnalyticsPage from "./portal/AnalyticsPage";
 
 export type { RecruiterPortalPage } from "./portal/data";
 export { NOTIFICATIONS } from "./portal/data";
@@ -42,8 +44,12 @@ function DashboardContent({ page }: { page: RecruiterPortalPage }) {
       return <CompanyPage />;
     case "settings":
       return <SettingsPage />;
+    case "team":
+      return <TeamPage />;
     case "interviews":
       return <InterviewsPage />;
+    case "analytics":
+      return <AnalyticsPage />;
     default:
       return <DashboardPage />;
   }
