@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { ChevronDown, LogOut } from "lucide-react";
+import BrandLogo from "./BrandLogo";
 import UserAvatar from "./UserAvatar";
 import { NAV_ITEMS } from "./portal/nav";
 import type { RecruiterPortalPage } from "./portal/data";
@@ -7,14 +8,27 @@ import type { AuthUser } from "../auth/AuthContext";
 
 interface SidebarProps {
   currentPage: RecruiterPortalPage;
+  brandPath: string;
   onNavigate: (path: string) => void;
   onLogout: () => void;
   user?: AuthUser | null;
 }
 
-export default function Sidebar({ currentPage, onNavigate, onLogout, user }: SidebarProps) {
+export default function Sidebar({ currentPage, brandPath, onNavigate, onLogout, user }: SidebarProps) {
   return (
     <aside className="fixed left-0 top-[73px] z-30 hidden h-[calc(100vh-73px)] w-[260px] shrink-0 flex-col border-r border-slate-200/80 bg-white/90 backdrop-blur-2xl lg:flex">
+      <button
+        type="button"
+        onClick={() => onNavigate(brandPath)}
+        aria-label="Go to dashboard"
+        className="flex items-center gap-3 border-b border-slate-100 px-5 py-5 text-left transition hover:bg-violet-50/50"
+      >
+        <BrandLogo size={34} />
+        <span>
+          <span className="block text-sm font-extrabold tracking-tight text-slate-950">Hired<span className="text-violet-600">AI</span></span>
+          <span className="block text-[11px] font-medium text-slate-500">Recruiter Portal</span>
+        </span>
+      </button>
       {/* Nav */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-4 pt-5 pb-4">
         {NAV_ITEMS.filter((item) => item.id !== "settings").map((item) => {

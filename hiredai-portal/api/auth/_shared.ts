@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { query } from '../_lib/db.js'
-import { badRequest, conflict, getBearerToken, json, unauthorized } from '../_lib/http.js'
+import { badRequest, conflict, getBearerToken, json, serviceUnavailable, unauthorized } from '../_lib/http.js'
 import { hashPassword, verifyPassword } from '../_lib/password.js'
 import { signJwt, verifyJwt } from '../_lib/jwt.js'
 
@@ -124,6 +124,11 @@ export function handleAuthError(res: ServerResponse, error: unknown) {
 
   if (message === 'JWT_SECRET is required' || message === 'Invalid session token' || message === 'User not found') {
     unauthorized(res, message)
+    return
+  }
+
+  if (error instanceof AggregateError || (error instanceof Error && 'code' in error)) {
+    serviceUnavailable(res, 'Authentication service unavailable')
     return
   }
 

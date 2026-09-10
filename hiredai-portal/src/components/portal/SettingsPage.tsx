@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { CircleCheckBig } from "lucide-react";
 import { GlassPanel, ToggleSwitch } from "./shared";
+import { apiRequest } from "../../lib/api";
+import { useAuth } from "../../auth/AuthContext";
+import { usePreferences } from "../../lib/queries";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const { data: savedPreferences } = usePreferences();
+  const queryClient = useQueryClient();
   const [notifPrefs, setNotifPrefs] = useState({
     "New applications": true,
     "Interview reminders": true,
@@ -12,12 +19,31 @@ export default function SettingsPage() {
     "Application updates": true,
   });
   const [saved, setSaved] = useState(false);
+  const [workspace, setWorkspace] = useState({ stage: "shortlisted", sort: "highest", columns: "candidate,score,skills,status" });
+
+  useEffect(() => {
+    if (!savedPreferences) return;
+    const notifications = savedPreferences.notifications as Record<string, boolean> | undefined;
+    const savedWorkspace = savedPreferences.workspace as Partial<typeof workspace> | undefined;
+    if (notifications) setNotifPrefs((previous) => ({ ...previous, ...notifications }));
+    if (savedWorkspace) setWorkspace((previous) => ({ ...previous, ...savedWorkspace }));
+  }, [savedPreferences]);
 
   const toggle = (key: string) => setNotifPrefs((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1800);
+  const handleSave = async () => {
+    if (!user?.id) return;
+    try {
+      await apiRequest(`/api/settings?user_id=${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ notifications: notifPrefs, workspace }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["preferences", user.id] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    } catch {
+      setSaved(false);
+    }
   };
 
   return (
@@ -44,21 +70,19 @@ export default function SettingsPage() {
       <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}>
         <GlassPanel title="Workspace preferences" subtitle="Default filters and column choices for hiring decisions.">
           <div className="space-y-4 text-sm text-slate-600">
-            {[
-              <>Default hiring stage: <span className="font-semibold text-slate-900">Shortlisted</span></>,
-              <>ATS sorting: <span className="font-semibold text-slate-900">Highest score first</span></>,
-              <>Visible columns: Candidate, ATS Score, Skills Match, Status</>,
-            ].map((content, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: i * 0.08, ease: "easeOut" }}
-                className="rounded-2xl border border-slate-100 bg-white/80 px-4 py-3"
-              >
-                {content}
-              </motion.div>
-            ))}
+            <label className="block rounded-2xl border border-slate-100 bg-white/80 px-4 py-3">Default hiring stage
+              <select value={workspace.stage} onChange={(event) => setWorkspace((previous) => ({ ...previous, stage: event.target.value }))} className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900">
+                <option value="shortlisted">Shortlisted</option><option value="applied">Applied</option><option value="interview">Interview</option><option value="hired">Hired</option>
+              </select>
+            </label>
+            <label className="block rounded-2xl border border-slate-100 bg-white/80 px-4 py-3">ATS sorting
+              <select value={workspace.sort} onChange={(event) => setWorkspace((previous) => ({ ...previous, sort: event.target.value }))} className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900">
+                <option value="highest">Highest score first</option><option value="newest">Newest first</option>
+              </select>
+            </label>
+            <label className="block rounded-2xl border border-slate-100 bg-white/80 px-4 py-3">Visible columns
+              <input value={workspace.columns} onChange={(event) => setWorkspace((previous) => ({ ...previous, columns: event.target.value }))} className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900" />
+            </label>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}

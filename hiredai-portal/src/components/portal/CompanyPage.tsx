@@ -1,7 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { Upload, X } from "lucide-react";
 import { GlassPanel } from "./shared";
+import { apiRequest } from "../../lib/api";
+import { useAuth } from "../../auth/AuthContext";
+import { useCompany } from "../../lib/queries";
 
 const COMPANY_FIELDS = ["Company name", "Industry", "Website", "Company size", "Headquarters"] as const;
 const RECRUITER_FIELDS = ["Recruiter name", "Work email", "Phone", "Verification status"] as const;
@@ -103,6 +107,9 @@ function LogoUpload({ logo, onChange }: LogoUploadProps) {
 }
 
 export default function CompanyPage() {
+  const { user } = useAuth();
+  const { data: companyData, isLoading } = useCompany();
+  const queryClient = useQueryClient();
   const [company, setCompany] = useState<CompanyInfo>({
     logo: null,
     "Company name": "",
@@ -120,6 +127,21 @@ export default function CompanyPage() {
     "Verification status": "",
     social: "",
   });
+  const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!companyData) return;
+    setCompany((previous) => ({
+      ...previous,
+      logo: companyData.logo_url,
+      "Company name": companyData.name,
+      Industry: companyData.industry ?? "",
+      Website: companyData.website ?? "",
+      "Company size": companyData.company_size ?? "",
+      Headquarters: companyData.headquarters ?? "",
+      about: companyData.description ?? "",
+    }));
+  }, [companyData]);
 
   const updateCompany = (key: keyof CompanyInfo, value: string) =>
     setCompany((prev) => ({ ...prev, [key]: value }));
@@ -127,15 +149,33 @@ export default function CompanyPage() {
   const updateRecruiter = (key: keyof RecruiterInfo, value: string) =>
     setRecruiter((prev) => ({ ...prev, [key]: value }));
 
-  const handleSave = () => {
-    console.log("Saving:", { company, recruiter });
-    // TODO: wire this up to your API call
+  const handleSave = async () => {
+    if (!user?.company_id) return;
+    try {
+      await apiRequest(`/api/companies?id=${user.company_id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: company["Company name"],
+          logo_url: company.logo,
+          description: company.about,
+          industry: company.Industry,
+          website: company.Website,
+          company_size: company["Company size"],
+          headquarters: company.Headquarters,
+        }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["company", user.company_id] });
+      setStatus({ type: "success", text: "Company profile saved successfully." });
+    } catch (error) {
+      setStatus({ type: "error", text: error instanceof Error ? error.message : "Unable to save company profile." });
+    }
   };
 
   return (
     <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}>
         <GlassPanel title="Company profile" subtitle="Brand, role, and company metadata in one clean panel.">
+          {isLoading ? <p className="mb-4 text-sm text-slate-500">Loading company profile...</p> : null}
           <div className="grid gap-4">
             <LogoUpload logo={company.logo} onChange={(url) => updateCompany("logo", url ?? "")} />
 
@@ -221,6 +261,7 @@ export default function CompanyPage() {
                 Request verification
               </motion.button>
             </div>
+            {status ? <div className={`md:col-span-2 rounded-2xl border px-4 py-3 text-sm font-semibold ${status.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`}>{status.text}</div> : null}
           </div>
         </GlassPanel>
       </motion.div>

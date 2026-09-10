@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { CalendarDays, ChevronRight, FileText, MoreHorizontal, Plus, Sparkles, TrendingUp, Video } from "lucide-react";
+import { Briefcase, CalendarDays, ChevronRight, CircleCheckBig, FileText, MoreHorizontal, Plus, Sparkles, TrendingUp, Video } from "lucide-react";
 import {
   Area,
   CartesianGrid,
@@ -14,15 +14,21 @@ import {
 import { useNavigate } from "react-router-dom";
 import { GlassPanel } from "./shared";
 import {
-  DASHBOARD_APPLICATIONS,
   DASHBOARD_INTERVIEWS,
-  DASHBOARD_STATS,
   DASHBOARD_STAT_SPARKS,
   DASHBOARD_TREND_DATA,
   HIRING_FUNNEL,
   applicationTone,
   currency,
 } from "./data";
+import { useApplications, useDashboardStats } from "../../lib/queries";
+
+const DASHBOARD_STAT_CONFIG = [
+  { label: "Active Jobs", key: "active_jobs", icon: Briefcase, tone: "from-violet-500 to-fuchsia-500", spark: "#7c3aed", delta: "Live count" },
+  { label: "Applications", key: "applications", icon: FileText, tone: "from-sky-500 to-blue-500", spark: "#0ea5e9", delta: "Live count" },
+  { label: "Interviews", key: "interviews", icon: CalendarDays, tone: "from-orange-500 to-amber-500", spark: "#f97316", delta: "Live count" },
+  { label: "Hired", key: "hired", icon: CircleCheckBig, tone: "from-emerald-500 to-green-500", spark: "#10b981", delta: "Live count" },
+] as const;
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
   const points = data.map((value, i) => ({ i, value }));
@@ -150,7 +156,13 @@ function DashboardHeroBanner({ onPostJob, onViewApplications }: { onPostJob: () 
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const maxFunnel = 478;
+  const { data: stats } = useDashboardStats();
+  const { data: applications = [] } = useApplications();
+  const liveFunnel = HIRING_FUNNEL.map((stage) => ({
+    ...stage,
+    value: stage.label === "Offer" ? 0 : applications.filter((application) => application.status === stage.label.toLowerCase()).length,
+  }));
+  const maxFunnel = Math.max(...liveFunnel.map((stage) => stage.value), 1);
 
   return (
     <div className="space-y-5">
@@ -160,7 +172,7 @@ export default function DashboardPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {DASHBOARD_STATS.map((stat, i) => {
+        {DASHBOARD_STAT_CONFIG.map((stat, i) => {
           const Icon = stat.icon;
           return (
             <motion.div
@@ -187,7 +199,7 @@ export default function DashboardPage() {
                 </div>
                 <Sparkline data={DASHBOARD_STAT_SPARKS[stat.label] ?? []} color={stat.spark} />
               </div>
-              <div className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">{stat.value}</div>
+              <div className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">{stats?.[stat.key] ?? 0}</div>
               <div className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
                 <TrendingUp size={13} />
                 {stat.delta}
@@ -252,7 +264,7 @@ export default function DashboardPage() {
         >
           <GlassPanel title="Hiring Pipeline">
             <div className="space-y-4">
-              {HIRING_FUNNEL.map((stage, i) => {
+              {liveFunnel.map((stage, i) => {
                 const Icon = stage.icon;
                 return (
                   <motion.div
@@ -335,6 +347,8 @@ export default function DashboardPage() {
                       {item.type}
                     </span>
                     <motion.button
+                      type="button"
+                      onClick={() => navigate("/hr/interviews")}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className="rounded-full border border-violet-200 px-3 py-1 text-xs font-semibold text-violet-700"
@@ -380,7 +394,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {DASHBOARD_APPLICATIONS.map((app, i) => (
+                  {applications.slice(0, 5).map((app, i) => (
                     <motion.tr
                       key={app.id}
                       initial={{ opacity: 0, y: 10 }}
@@ -392,25 +406,25 @@ export default function DashboardPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <div className="grid h-11 w-11 place-items-center rounded-full bg-[linear-gradient(135deg,rgba(124,58,237,0.12),rgba(168,85,247,0.10))] text-sm font-bold text-violet-700">
-                            {app.initials}
+                            {app.candidate_name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-950">{app.candidate}</div>
-                            <div className="text-xs text-slate-500">{app.role}</div>
+                            <div className="font-semibold text-slate-950">{app.candidate_name}</div>
+                            <div className="text-xs text-slate-500">{app.job_title}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm font-medium text-slate-700">{app.role}</td>
+                      <td className="px-4 py-4 text-sm font-medium text-slate-700">{app.job_title}</td>
                       <td className="px-4 py-4">
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{app.ats}%</span>
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">-</span>
                       </td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{app.experience}</td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{app.applied}</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">-</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">{new Date(app.applied_at).toLocaleDateString()}</td>
                       <td className="px-4 py-4">
                         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationTone(app.status)}`}>{app.status}</span>
                       </td>
                       <td className="px-4 py-4">
-                        <button type="button" className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                        <button type="button" onClick={() => navigate("/hr/applications")} aria-label={`Review ${app.candidate_name}`} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
                           <MoreHorizontal size={16} />
                         </button>
                       </td>

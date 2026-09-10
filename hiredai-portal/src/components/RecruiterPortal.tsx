@@ -61,9 +61,7 @@ export default function RecruiterPortal({ page }: RecruiterPortalProps) {
     navigate("/login");
   };
 
-  // The marketing "home" page and the full-width Analytics dashboard
-  // skip the sidebar; every other app page pairs the top nav with it.
-  const showSidebar = page !== "home";
+  const showSidebar = true;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f8f7ff_36%,#ffffff_100%)] overflow-x-hidden">
@@ -75,6 +73,7 @@ export default function RecruiterPortal({ page }: RecruiterPortalProps) {
       <div className="relative min-h-screen pt-[73px]">
         <TopNavBar
           currentPage={page}
+          brandPath={page === "home" ? "/" : "/hr/dashboard"}
           onNavigate={(path) => navigate(path)}
           onLogout={handleLogout}
           onOpenMobileMenu={() => setMobileOpen(true)}
@@ -82,7 +81,7 @@ export default function RecruiterPortal({ page }: RecruiterPortalProps) {
         />
 
         <div className={showSidebar ? "flex" : ""}>
-          {showSidebar ? <Sidebar currentPage={page} onNavigate={(path) => navigate(path)} onLogout={handleLogout} user={user} /> : null}
+          {showSidebar ? <Sidebar currentPage={page} brandPath={page === "home" ? "/" : "/hr/dashboard"} onNavigate={(path) => navigate(path)} onLogout={handleLogout} user={user} /> : null}
 
           <main className={`min-w-0 flex-1 px-4 py-5 md:px-6 lg:px-8 lg:py-7 ${showSidebar ? "lg:ml-[260px]" : ""}`}>
             <AnimatePresence mode="wait">

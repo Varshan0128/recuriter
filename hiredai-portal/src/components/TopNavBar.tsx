@@ -25,13 +25,14 @@ const NAV_LINKS: NavLink[] = [
 
 interface TopNavBarProps {
   currentPage: RecruiterPortalPage;
+  brandPath: string;
   onNavigate: (path: string) => void;
   onLogout: () => void;
   onOpenMobileMenu: () => void;
   user?: AuthUser | null;
 }
 
-export default function TopNavBar({ currentPage, onNavigate, onLogout, onOpenMobileMenu, user }: TopNavBarProps) {
+export default function TopNavBar({ currentPage, brandPath, onNavigate, onLogout, onOpenMobileMenu, user }: TopNavBarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -51,7 +52,7 @@ export default function TopNavBar({ currentPage, onNavigate, onLogout, onOpenMob
         {/* Brand */}
         <motion.button
           type="button"
-          onClick={() => onNavigate("/hr/home")}
+          onClick={() => onNavigate(brandPath)}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.96 }}
           className="flex shrink-0 items-center gap-3 rounded-2xl px-1 py-1 transition"

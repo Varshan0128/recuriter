@@ -38,6 +38,10 @@ export function conflict(res: ServerResponse, message: string) {
   json(res, 409, { error: message })
 }
 
+export function serviceUnavailable(res: ServerResponse, message = 'Service temporarily unavailable') {
+  json(res, 503, { error: message })
+}
+
 export async function readJsonBody(req: IncomingMessage) {
   const chunks: Buffer[] = []
 
