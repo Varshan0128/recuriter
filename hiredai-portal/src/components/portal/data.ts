@@ -336,8 +336,6 @@ export function statusDot(status: InterviewRow["status"]) {
 
 export function pageTitle(page: RecruiterPortalPage) {
   switch (page) {
-    case "home":
-      return "Home";
     case "dashboard":
       return "Hiring dashboard";
     case "post-job":

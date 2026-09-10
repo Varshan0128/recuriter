@@ -7,6 +7,7 @@ import TopNavBar from "./TopNavBar";
 import Sidebar from "./Sidebar";
 import { MobileDrawer } from "./portal/shared";
 import type { RecruiterPortalPage } from "./portal/data";
+import HomePage from "./portal/HomePage";
 import DashboardPage from "./portal/DashboardPage";
 import JobsPage from "./portal/JobsPage";
 import ApplicationsPage from "./portal/ApplicationsPage";
@@ -26,7 +27,7 @@ interface RecruiterPortalProps {
 function DashboardContent({ page }: { page: RecruiterPortalPage }) {
   switch (page) {
     case "home":
-      return <DashboardPage />;
+      return <HomePage />;
     case "dashboard":
       return <DashboardPage />;
     case "jobs":
@@ -72,6 +73,7 @@ export default function RecruiterPortal({ page }: RecruiterPortalProps) {
       <div className="relative min-h-screen pt-[73px]">
         <TopNavBar
           currentPage={page}
+          brandPath={page === "home" ? "/" : "/hr/dashboard"}
           onNavigate={(path) => navigate(path)}
           onLogout={handleLogout}
           onOpenMobileMenu={() => setMobileOpen(true)}
@@ -79,7 +81,7 @@ export default function RecruiterPortal({ page }: RecruiterPortalProps) {
         />
 
         <div className={showSidebar ? "flex" : ""}>
-          {showSidebar ? <Sidebar currentPage={page} onNavigate={(path) => navigate(path)} onLogout={handleLogout} user={user} /> : null}
+          {showSidebar ? <Sidebar currentPage={page} brandPath={page === "home" ? "/" : "/hr/dashboard"} onNavigate={(path) => navigate(path)} onLogout={handleLogout} user={user} /> : null}
 
           <main className={`min-w-0 flex-1 px-4 py-5 md:px-6 lg:px-8 lg:py-7 ${showSidebar ? "lg:ml-[260px]" : ""}`}>
             <AnimatePresence mode="wait">

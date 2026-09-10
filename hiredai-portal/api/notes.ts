@@ -5,6 +5,7 @@ import { noteFields } from './_lib/resources.js'
 export default createCrudHandler({
   table: 'notes',
   orderBy: 'created_at',
+  listFilterField: 'application_id',
   createFields: noteFields,
   updateFields: noteFields,
   requiredCreateFields: ['application_id', 'content'] as const,

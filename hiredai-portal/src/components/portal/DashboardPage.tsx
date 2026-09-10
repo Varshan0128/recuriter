@@ -158,7 +158,11 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { data: stats } = useDashboardStats();
   const { data: applications = [] } = useApplications();
-  const maxFunnel = 478;
+  const liveFunnel = HIRING_FUNNEL.map((stage) => ({
+    ...stage,
+    value: stage.label === "Offer" ? 0 : applications.filter((application) => application.status === stage.label.toLowerCase()).length,
+  }));
+  const maxFunnel = Math.max(...liveFunnel.map((stage) => stage.value), 1);
 
   return (
     <div className="space-y-5">
@@ -260,7 +264,7 @@ export default function DashboardPage() {
         >
           <GlassPanel title="Hiring Pipeline">
             <div className="space-y-4">
-              {HIRING_FUNNEL.map((stage, i) => {
+              {liveFunnel.map((stage, i) => {
                 const Icon = stage.icon;
                 return (
                   <motion.div
@@ -343,6 +347,8 @@ export default function DashboardPage() {
                       {item.type}
                     </span>
                     <motion.button
+                      type="button"
+                      onClick={() => navigate("/hr/interviews")}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className="rounded-full border border-violet-200 px-3 py-1 text-xs font-semibold text-violet-700"
@@ -418,7 +424,7 @@ export default function DashboardPage() {
                         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationTone(app.status)}`}>{app.status}</span>
                       </td>
                       <td className="px-4 py-4">
-                        <button type="button" className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                        <button type="button" onClick={() => navigate("/hr/applications")} aria-label={`Review ${app.candidate_name}`} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
                           <MoreHorizontal size={16} />
                         </button>
                       </td>

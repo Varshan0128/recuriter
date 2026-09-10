@@ -119,11 +119,11 @@ export function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to="/hr/home" replace />
+    return <Navigate to="/hr/dashboard" replace />
   }
 
   const state = location.state as { from?: { pathname?: string } } | null
-  const destination = state?.from?.pathname || '/hr/home'
+  const destination = state?.from?.pathname || '/hr/dashboard'
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -184,7 +184,7 @@ export function SignupPage() {
   }
 
   if (user) {
-    return <Navigate to="/hr/home" replace />
+    return <Navigate to="/hr/dashboard" replace />
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -194,7 +194,7 @@ export function SignupPage() {
 
     try {
       await signup(name, email, password)
-      navigate('/hr/home', { replace: true })
+      navigate('/hr/dashboard', { replace: true })
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Unable to create your account')
     } finally {

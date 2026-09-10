@@ -19,6 +19,14 @@ export type Job = {
   created_at: string
 }
 
+export type Note = {
+  id: string
+  application_id: string
+  author_id: string | null
+  content: string
+  created_at: string
+}
+
 export type Application = {
   id: string
   job_id: string
@@ -95,5 +103,21 @@ export function usePreferences() {
     queryKey: ['preferences', userId],
     queryFn: () => apiRequest<Record<string, unknown>>(`/api/settings${queryString({ user_id: userId })}`),
     enabled: Boolean(userId),
+  })
+}
+
+export function useJob(jobId: string | null) {
+  return useQuery({
+    queryKey: ['job', jobId],
+    queryFn: () => apiRequest<Job>(`/api/jobs${queryString({ id: jobId })}`),
+    enabled: Boolean(jobId),
+  })
+}
+
+export function useNotes(applicationId: string | null) {
+  return useQuery({
+    queryKey: ['notes', applicationId],
+    queryFn: () => apiRequest<Note[]>(`/api/notes${queryString({ application_id: applicationId })}`),
+    enabled: Boolean(applicationId),
   })
 }

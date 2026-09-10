@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { apiRequest } from "../../lib/api";
+import { useJob } from "../../lib/queries";
 import { CircleCheckBig } from "lucide-react";
 import { GlassPanel } from "./shared";
 
@@ -10,8 +11,12 @@ const FIELDS = ["Job title", "Department", "Employment type", "Work mode", "Loca
 
 export default function JobFormPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const editJobId = new URLSearchParams(location.search).get("edit");
+  const { data: editJob, isLoading: isLoadingJob, error: editJobError } = useJob(editJobId);
+  const isEditMode = Boolean(editJobId);
   const steps = ["Basics", "Compensation", "Requirements", "Publish"];
   const [step, setStep] = useState(0);
 
@@ -31,6 +36,22 @@ export default function JobFormPage() {
 
   const previewRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editJob) return;
+    setForm({
+      "Job title": editJob.title,
+      Department: "",
+      "Employment type": editJob.employment_type,
+      "Work mode": editJob.work_mode,
+      Location: "",
+      Experience: editJob.experience_min !== null && editJob.experience_max !== null ? `${editJob.experience_min}-${editJob.experience_max}` : "",
+      "Salary range": editJob.salary_min !== null && editJob.salary_max !== null ? `${editJob.salary_min}-${editJob.salary_max}` : "",
+      "Number of openings": "",
+      description: editJob.description,
+    });
+  }, [editJob]);
 
   const showStatus = (type: "success" | "error", text: string) => {
     setStatus({ type, text });
@@ -55,36 +76,48 @@ export default function JobFormPage() {
       showStatus("error", "Your account is not linked to a company.");
       return;
     }
+    setIsSaving(true);
     try {
+      const salaryParts = form["Salary range"].split("-").map((value) => Number(value.trim()));
+      const salary_min = salaryParts.length === 2 && salaryParts.every(Number.isFinite) ? salaryParts[0] : null;
+      const salary_max = salaryParts.length === 2 && salaryParts.every(Number.isFinite) ? salaryParts[1] : null;
+      const payload = {
+        company_id: user.company_id,
+        created_by: user.id,
+        title: form["Job title"],
+        description: form.description || "Role description pending.",
+        employment_type: form["Employment type"],
+        work_mode: form["Work mode"],
+        experience_min: form.Experience ? Number(form.Experience.split("-")[0]) : null,
+        experience_max: form.Experience ? Number(form.Experience.split("-")[1]) : null,
+        salary_min,
+        salary_max,
+        status: isEditMode ? editJob?.status : "published",
+        salary_currency: "USD",
+      };
       await apiRequest("/api/jobs", {
-        method: "POST",
-        body: JSON.stringify({
-          company_id: user.company_id,
-          created_by: user.id,
-          title: form["Job title"],
-          description: form.description || "Role description pending.",
-          employment_type: form["Employment type"],
-          work_mode: form["Work mode"],
-          experience_min: form.Experience ? Number(form.Experience.split("-")[0]) : null,
-          experience_max: form.Experience ? Number(form.Experience.split("-")[1]) : null,
-          status: "published",
-          salary_currency: "USD",
-        }),
+        method: isEditMode ? "PATCH" : "POST",
+        ...(isEditMode ? { body: JSON.stringify({ ...payload, id: editJobId }) } : { body: JSON.stringify(payload) }),
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["jobs", user.company_id] }),
+        queryClient.invalidateQueries({ queryKey: ["job", editJobId] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard", user.company_id] }),
       ]);
-      showStatus("success", `"${form["Job title"]}" published successfully.`);
+      showStatus("success", isEditMode ? `"${form["Job title"]}" updated successfully.` : `"${form["Job title"]}" published successfully.`);
       navigate("/hr/jobs");
     } catch (error) {
       showStatus("error", error instanceof Error ? error.message : "Unable to publish job.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-      <GlassPanel title="Post a Job" subtitle="A cleaner, premium version of the same posting flow.">
+      <GlassPanel title={isEditMode ? "Edit Job" : "Post a Job"} subtitle="A cleaner, premium version of the same posting flow.">
+        {isLoadingJob ? <p className="mb-4 text-sm text-slate-500">Loading job...</p> : null}
+        {editJobError ? <p className="mb-4 text-sm text-red-600">{editJobError.message}</p> : null}
         <div className="mb-6 flex flex-wrap items-center gap-3">
           {steps.map((label, index) => (
             <div key={label} className="flex items-center gap-3">
@@ -152,7 +185,7 @@ export default function JobFormPage() {
           <button type="button" onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))} className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white">Next</button>
           <button type="button" onClick={handleSaveDraft} className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-700">Save as Draft</button>
           <button type="button" onClick={handlePreview} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Preview Job</button>
-          <button type="button" onClick={handlePublish} className="rounded-2xl bg-[linear-gradient(135deg,#7c3aed_0%,#6d28d9_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(124,58,237,0.24)]">Publish Job</button>
+          <button type="button" onClick={handlePublish} disabled={isSaving || isLoadingJob || Boolean(editJobError)} className="rounded-2xl bg-[linear-gradient(135deg,#7c3aed_0%,#6d28d9_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(124,58,237,0.24)] disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Saving..." : isEditMode ? "Save Changes" : "Publish Job"}</button>
         </div>
       </GlassPanel>
 
